@@ -1,3 +1,36 @@
+# Tuning Framework for Splunk
+
+## App Properties 
+author: Donald Murchison  
+check_for_updates: true  
+description: Splunk App to implement tuning mechanisms for Splunk alerts  
+id: tuning_framework_for_splunk  
+is_visible: 1  
+label: Tuning Framework for Splunk  
+name: tuning_framework_for_splunk  
+version: 1.0.0  
+
+## App Structure 
+```
+tuning_framework_for_splunk
+|--- default
+`` |--- app.conf
+`` |--- data
+`` `` |--- ui
+`` `` `` |--- views
+`` `` `` `` |--- tuning_framework_add_entry.xml
+`` `` `` `` |--- tuning_framework_list_entry.xml
+`` |--- macros.conf
+`` |--- savedsearches.conf
+|--- lookups
+`` |--- rba_risk_score_override.csv
+`` |--- time_based_suppression.csv
+|--- README.md
+```
+## App Confs 
+### macros.conf 
+#### Default 
+```
 [tf_time_based_suppression(1)]
 definition = | search NOT [| inputlookup time_based_suppression_lookup.csv | eval field=if(key_type="single",split(field,"|"),field) | mvexpand field | eval field=split(field,"|"), value=split(value,"|"), rule_name=split(rule_name,"|") | search rule_name=$rule_name$ | eval combined=if(key_type="single",mvmap(value,field."=\"".value."\""),mvzip(field,mvmap(value,"\"".value."\""),"=")), partial_search=if(key_type="single",mvjoin(combined," OR "), mvjoin(combined," AND ")) | eval partial_search="(".partial_search.")" | stats values(partial_search) as partial_search | eval search=mvjoin(partial_search, " OR ") | eval search="(".search.")" | fields search]
 args = rule_name
@@ -8,3 +41,22 @@ definition = | eval rule_override=[| inputlookup rba_risk_score_override.csv | e
 args = rule_name
 
 
+
+```
+### savedsearches.conf 
+#### Default 
+```
+[time_based_suppression_list_clean_up]
+search = | inputlookup time_based_suppression.csv | eval remove=if(relative_time(strptime(created_time,"%s"),"+".suppression_period)<now(),1,0) | eval remove=if(relative_time(strptime(created_time,"%s"),"+180d")<now(),1,remove) | search remove=0 | outputlookup time_based_suppression.csv
+dispatch.earliest_time = -5m
+dispatch.latest_time = now
+cron_schedule = 0 1 * * *
+disabled = 0
+
+[rba_confidence_override_list_clean_up]
+search = | inputlookup rba_confidence_override.csv | eval remove=if(relative_time(strptime(created_time,"%s"),"+".suppression_period)<now(),1,0) | eval remove=if(relative_time(strptime(created_time,"%s"),"+180d")<now(),1,remove) | search remove=0 | outputlookup rba_confidence_override.csv
+dispatch.earliest_time = -5m
+dispatch.latest_time = now
+cron_schedule = 5 1 * * *
+disabled = 0
+```
