@@ -24,8 +24,8 @@
 | search value="*$search_token$*" OR field="*$search_token$*" OR id="*$search_token$*" OR rule_name="*$search_token$*" OR notes="*$search_token$*"
 | eval Created=strftime(created_time,"%Y-%m-%d %H:%M:%S") 
 | eval Action="Click to Remove"
-| rename field as Field rule_name as "Rule Name" operator as Operator notes as Notes lifetime as Lifetime value as Value risk_score as "Risk Score"
-| table Created Lifetime Field Value "Rule Name" Operator "Risk Score" Notes Action
+| rename field as Field rules as "Rules" operator as Operator notes as Notes lifetime as Lifetime value as Value risk_score as "Risk Score"
+| table Created Lifetime Field Value "Rules" Operator "Risk Score" Notes Action
 | sort 0 - Created</query>
           <earliest>-30m@m</earliest>
           <latest>now</latest>

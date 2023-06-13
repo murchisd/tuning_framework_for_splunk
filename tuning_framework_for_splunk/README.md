@@ -17,6 +17,8 @@ tuning_framework_for_splunk
 `` |--- app.conf
 `` |--- data
 `` `` |--- ui
+`` `` `` |--- nav
+`` `` `` `` |--- default.xml
 `` `` `` |--- views
 `` `` `` `` |--- tuning_framework_add_entry.xml
 `` `` `` `` |--- tuning_framework_list_entry.xml
