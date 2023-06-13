@@ -1,0 +1,4 @@
+<nav search_view="search">
+    <view name="tuning_framework_add_entry" default="true"/>
+	<view name="tuning_framework_list_entry" />
+</nav>

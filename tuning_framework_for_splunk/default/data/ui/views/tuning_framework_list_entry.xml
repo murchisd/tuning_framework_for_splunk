@@ -1,0 +1,96 @@
+<form version="1.1" theme="dark">
+  <label>List/Remove Entry</label>
+  <fieldset submitButton="true" autoRun="false">
+    <input type="dropdown" token="tuning_lookup">
+      <label>Tuning Mode</label>
+      <choice value="rba_risk_score_override.csv">Risk Score Override</choice>
+      <choice value="time_based_suppression.csv">Suppression</choice>
+      <default>rba_risk_score_override.csv</default>
+      <initialValue>rba_risk_score_override.csv</initialValue>
+    </input>
+    <input type="text" token="search_token" searchWhenChanged="false">
+      <label>Search</label>
+      <default>*</default>
+    </input>
+    <input depends="$hidden$" token="refresh_search">
+      <default>1</default>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <table>
+        <search depends="$refresh_search$">
+          <query>| inputlookup $tuning_lookup$
+| search value="*$search_token$*" OR field="*$search_token$*" OR id="*$search_token$*" OR rule_name="*$search_token$*" OR notes="*$search_token$*"
+| eval Created=strftime(created_time,"%Y-%m-%d %H:%M:%S") 
+| eval Action="Click to Remove"
+| rename field as Field rules as "Rules" operator as Operator notes as Notes lifetime as Lifetime value as Value risk_score as "Risk Score"
+| table Created Lifetime Field Value "Rules" Operator "Risk Score" Notes Action
+| sort 0 - Created</query>
+          <earliest>-30m@m</earliest>
+          <latest>now</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">100</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">cell</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <drilldown>
+          <condition field="Action">
+            <unset token="refresh_search"></unset>
+            <set token="rowTime">$click.value$</set>
+            <set token="rowField">$row.Field$</set>
+            <set token="rowValue">$row.Value$</set>
+            <set token="rowRuleId">$row.Rule_Id$</set>
+          </condition>
+          <condition field="Created"></condition>
+          <condition field="TTL"></condition>
+          <condition field="Rule Id"></condition>
+          <condition field="Rule Name"></condition>
+          <condition field="Type"></condition>
+          <condition field="Value"></condition>
+          <condition field="Field"></condition>
+          <condition field="Notes"></condition>
+        </drilldown>
+      </table>
+    </panel>
+  </row>
+  <row depends="$hidden$">
+    <panel>
+      <table>
+        <title>Hidden OutputLookup Base Search</title>
+        <search depends="$rowTime$" id="baseSearch">
+          <query>| inputlookup $tuning_lookup$
+| eval id=sha1(created_time."|".operator."|".field."|".value), remove_id=sha1(strptime("$rowTime$","%Y-%m-%d %H:%M:%S")."|$rowOperator$|$rowField$|$rowValue")
+| where id!=remove_id 
+| fields - id remove_id
+| table *</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+    <panel>
+      <table>
+        <title>Hidden OutputLookup Search</title>
+        <search base="baseSearch" depends="$rowTime$">
+          <done>
+            <set token="refresh_search">1</set>
+            <unset token="rowTime"></unset>
+          </done>
+          <query>| outputlookup $tuning_lookup$
+| stats count
+```Add auditing for removal when up date to kvstore can use _delete easily```</query>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+</form>

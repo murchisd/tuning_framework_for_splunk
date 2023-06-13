@@ -1,1 +1,1 @@
-created_time,field,rule_name,key_type,notes,remove,suppression_period,value
+created_time,field,rules,operator,notes,remove,lifetime,value
