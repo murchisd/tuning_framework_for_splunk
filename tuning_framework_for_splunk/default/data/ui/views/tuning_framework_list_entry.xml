@@ -3,10 +3,10 @@
   <fieldset submitButton="true" autoRun="false">
     <input type="dropdown" token="tuning_lookup">
       <label>Tuning Mode</label>
-      <choice value="rba_risk_score_override.csv">Risk Score Override</choice>
-      <choice value="time_based_suppression.csv">Suppression</choice>
-      <default>rba_risk_score_override.csv</default>
-      <initialValue>rba_risk_score_override.csv</initialValue>
+      <choice value="rba_risk_score_override">Risk Score Override</choice>
+      <choice value="time_based_suppression">Suppression</choice>
+      <default>rba_risk_score_override_lookup</default>
+      <initialValue>rba_risk_score_override_lookup</initialValue>
     </input>
     <input type="text" token="search_token" searchWhenChanged="false">
       <label>Search</label>
@@ -45,7 +45,7 @@
             <set token="rowTime">$click.value$</set>
             <set token="rowField">$row.Field$</set>
             <set token="rowValue">$row.Value$</set>
-            <set token="rowRuleId">$row.Rule_Id$</set>
+            <set token="rowOperator">$row.Operator$</set>
           </condition>
           <condition field="Created"></condition>
           <condition field="TTL"></condition>
@@ -65,7 +65,7 @@
         <title>Hidden OutputLookup Base Search</title>
         <search depends="$rowTime$" id="baseSearch">
           <query>| inputlookup $tuning_lookup$
-| eval id=sha1(created_time."|".operator."|".field."|".value), remove_id=sha1(strptime("$rowTime$","%Y-%m-%d %H:%M:%S")."|$rowOperator$|$rowField$|$rowValue")
+| eval id=sha1(created_time."|".operator."|".field."|".value), remove_id=sha1(round(strptime("$rowTime$","%Y-%m-%d %H:%M:%S"),0)."|$rowOperator$|$rowField$|$rowValue$")
 | where id!=remove_id 
 | fields - id remove_id
 | table *</query>
