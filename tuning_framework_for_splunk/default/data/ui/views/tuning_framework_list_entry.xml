@@ -5,8 +5,8 @@
       <label>Tuning Mode</label>
       <choice value="rba_risk_score_override">Risk Score Override</choice>
       <choice value="time_based_suppression">Suppression</choice>
-      <default>rba_risk_score_override</default>
-      <initialValue>rba_risk_score_override</initialValue>
+      <default>rba_risk_score_override_lookup</default>
+      <initialValue>rba_risk_score_override_lookup</initialValue>
     </input>
     <input type="text" token="search_token" searchWhenChanged="false">
       <label>Search</label>
