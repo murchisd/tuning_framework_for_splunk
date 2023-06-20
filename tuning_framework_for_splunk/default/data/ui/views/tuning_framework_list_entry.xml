@@ -3,10 +3,10 @@
   <fieldset submitButton="true" autoRun="false">
     <input type="dropdown" token="tuning_lookup">
       <label>Tuning Mode</label>
-      <choice value="rba_risk_score_override.csv">Risk Score Override</choice>
-      <choice value="time_based_suppression.csv">Suppression</choice>
-      <default>rba_risk_score_override.csv</default>
-      <initialValue>rba_risk_score_override.csv</initialValue>
+      <choice value="rba_risk_score_override">Risk Score Override</choice>
+      <choice value="time_based_suppression">Suppression</choice>
+      <default>rba_risk_score_override</default>
+      <initialValue>rba_risk_score_override</initialValue>
     </input>
     <input type="text" token="search_token" searchWhenChanged="false">
       <label>Search</label>
