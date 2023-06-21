@@ -1,21 +1,129 @@
 # Tuning Framework Overview
 
-The Tuning Framework is a custom framework built in Splunk to facilitate tuning detection rules to reduce false positives. The framework implements a small number of lookups which allow dynamic allowlisting and adjusting of risk scores for all rules based on any combination of fields within the events.  
+The Tuning Framework is a custom framework built in Splunk to facilitate tuning detection rules to suppress false positives or adjsut risk score for Risk Based Alerting. The framework implements a small number of lookups and macros to dynamically suppress events or adjust risk scores for all correlation searches based on any combination of fields within the events. For most Splunk environemnts, this will enhance analysts ability to quickly tune rules and greatly reduce the lift from Splunk administrators.
   
-The framework allows analysts to suppress or adjust risk score for any rule based off any set of criteria. This is done by constructing dynamic chunks of SPL to form searches and eval statements based on the contents of the lookups. By doing this, we can use lookups for tuning without having to anticipate the different combinations of fields analyst may need to suppress on.  
+Analysts can use the `Add Entry` dashboard to add a combination of correlation search names, fields, and values to tuning lookups which will be used to suppress or adjust risk score for any events that match the specified criteria. This is done by constructing dynamic chunks of SPL to form searches and eval statements based on the contents of the lookups. By doing this, we can use a single lookup for tuning all correlation searches without having to anticipate the different combinations of fields analyst may need to match on. The risk score adjustment works whether you have implemented a macor based version of RBA or are using the Risk Analysis adaptive response action.  
   
-This documentation will describe the components of the framework at a high level and then go in to detail of the SPL logic used to produce the dynamic searches and evals.
+Entries in the lookups have a maximum lifetime of 180 days, but this can be set as part of the `Add Entry` dashboard. Analysts can also remove entries at anytime by finding the entry in the `List/Remove Entry` dashboard and clicking `Click to Remove` in the appropriate row. 
+  
+This documentation will describe how to use the framework, the components of the framework, and the details of the SPL logic used to produce the dynamic searches and evals.
 
-## Framework Components
+## Installing and Configuring the Tuning Framework
+
+Setting up the framework is very simple and only requires two steps:
+
+1. Install the `Tuning Framework for Splunk` App
+1. Add Tuning Macros to Correlation Searches
+
+
+That's it! Once these steps are complete, analysts will be able to suppress or adjust risk scores across any correlation search based on any combination of fields within the events, with no other configuration from Splunk admins.  
+
+### 1. Installing the Tuning Framework for Splunk App
+
+* Download the tuning_framework_for_splunk.tgz file from Splunkbase(to-do) or Github
+  * [Github](https://github.com/murchisd/tuning_framework_for_splunk/blob/main/tuning_framework_for_splunk.tgz)
+  * Splunkbase - to-do
+  
+* Install App from file
+  * Navigate to Splunk instance
+  * Select `Manage Apps -> Install app from file -> Choose File` and select the tuning_framework_for_splunk.tgz 
+
+### 2. Add Tuning Macros to Correlation Searches 
+
+The framework uses a macro to suppress events, `tf_time_based_suppression(1)`, and one to adjust risk scores, `tf_rba_risk_score_override(1)`. These macros must be added to the correlation searches and passed the search name as an argument to enable the corresponding capability. **Position of the macros matters.** In most cases, the macros should be added to the very end of the search.  
+  
+For example, assume there is a correlation search `Authentication - RR - Excessive Failed Logins` which I would like to enable both suppression and risk score adjustment capabilities. The SPL for the search is listed below.
+
+````
+| tstats count from datamodel=Authentication where Authentication.action="failure" by Authentication.user 
+| rename Authentication.* as *
+| search count > 10
+```
+
+I would add both macros to the end of the SPL as seen below. The below example will run a `| eval risk_score=...` followed by a `| search NOT ...` after the `|search count > 10`.
+
+````
+| tstats count from datamodel=Authentication where Authentication.action="failure" by Authentication.user 
+| rename Authentication.* as *
+| search count > 10
+`tf_rba_risk_score_override("Authentication - RR - Excessive Failed Logins")`
+`tf_time_based_suppression("Authentication - RR - Excessive Failed Logins")`
+```
+
+One instance where you would not add to the end of the SPL is when using `collect` or `sendalert` to write you own risk events. You would want to place the macros before either of these commands.
+
+````
+| tstats count from datamodel=Authentication where Authentication.action="failure" by Authentication.user 
+| rename Authentication.* as *
+| search count > 10
+| eval risk_score="20"
+`tf_rba_risk_score_override("Authentication - RR - Excessive Failed Logins")`
+`tf_time_based_suppression("Authentication - RR - Excessive Failed Logins")`
+| collect index=risk 
+````
+
+## Using the Tuning Framework
+
+To use the framework, analysts only need two functions, adding entries and removing entries. These actions can be performed using the `Add Entry` and `List/Remove Entry` dashboards.
+
+### Add Entries to the Tuning Lookups
+
+The simplest way to add entries to the tuning lookups is to use the `Add Entry` dashboard. To do this, select or fill in the appropriate inputs and click `Submit`. Detailed documentation about each input and the resulting tuning behavior is included on the `Add Entry` dashboard and in the `Framework Logic` section below. 
+
+![Add Entry Dashboard](https://github.com/murchisd/tuning_framework_for_splunk/blob/main/static/add_entry_dashboard.png)
+
+The following screen shots show an example of adding an entry which will suppress any events where `src` OR `src_ip` equals `10.0.0.1` or an IP in `192.168.0.1/16` range for `Authentication - RR - Excessive Failed Logins` rule. This example would create an entry in the tuning lookups that the tf_time_based_suppression macro would evaluate to add `| search NOT ((src=10.0.0.1 OR src=192.168.0.1/16) OR (src_ip=10.0.0.1 OR src_ip=192.168.0.1/16))` to the end of the `Authentication - RR - Excessive Failed Logins` rule.
+
+1. Select `Suppression` Tuning Mode and `Authentication - RR - Excessive Failed Logins` from the Correlation Searches drop down
+
+![tuning mode and correlation search name input screenshot](https://github.com/murchisd/tuning_framework_for_splunk/blob/main/static/tuning_mode_and_cs_name_input.png)
+
+1. Specify Pipe Delimited Fields and Values for Suppression `src|src_ip` and `10.0.0.1|192.168.0.1/16`
+
+![field and value input screenshot](https://github.com/murchisd/tuning_framework_for_splunk/blob/main/static/field_and_value_input.png)
+
+1. Select Lifetime and Logic Operator and specify Notes (Risk Score input is not used for Suppression Tuning Mode)
+
+![lifetime_operator_notes_input screenshot](https://github.com/murchisd/tuning_framework_for_splunk/blob/main/static/lifetime_operator_notes_input.png)
+
+1. Suppress Warnings if necessary 
+
+Certain checks have been put in place to ensure proper format of entries and that analysts are aware of the resulting behavior. This example generates the warning `Warning: "value" input contains a pipe for Logic Operator "OR" - Multiple values will be suppressed using pipe delimiter - Verify this is desired behavior - select ignore warnings to suppress this message`. Warnings can be bypassed by setting `Ignore Warnings` to `Yes`.
+
+![warning screenshot](https://github.com/murchisd/tuning_framework_for_splunk/blob/main/static/warning.png)
+
+1. Select `Run Query`
+
+After ignoring any warnings, you need to perform one final action before the entry will be added. Splunk has implemented safegaurds against "risky" SPL commands ([documentation](https://docs.splunk.com/Documentation/Splunk/latest/Security/SPLsafeguards#SPL_safeguards_for_risky_commands)). This means the `OUTPUTLOOKUP` will not run without user interaction. You must select the `red square` at the bottom right of the `Tuning Output Lookup Action` panel and select `Run Query`.
+
+![potentially_risky_command screenshot](https://github.com/murchisd/tuning_framework_for_splunk/blob/main/static/potentially_risky_command.png)
+
+![run_query screenshot](https://github.com/murchisd/tuning_framework_for_splunk/blob/main/static/run_query.png)
+
+1. Success!
+The entry should have been successfully added to the Tuning Framework
+
+![successfully_added_entry screenshot](https://github.com/murchisd/tuning_framework_for_splunk/blob/main/static/successfully_added_entry.png)
+
+## Tuning Framework Components
 
 The framework is built using a collection of lookups, saved searches, dashboards, and macros. Details about the individual components are below:
 
 ### Lookups
-* time_based_suppression.csv 
-* rba_risk_score_override.csv 
+* time_based_suppression_lookup.csv 
+  * Fields: created_time,field,value,rules,operator,lifetime,notes
+* rba_risk_score_override_lookup.csv
+  * Fields: created_time,field,value,rules,operator,lifetime,notes,risk_score
+
+### Lookup Definitions
+* time_based_suppression_lookup
+  * Advanced Configurations: None
+* rba_risk_score_override_lookup 
+  * Advanced Configurations: None
 
 ### Saved Searches
-
+* TF_R_0001-Tuning_Framework_Risk_Score_Override_Lookup_Cleanup - remove entries that have expired from rba_risk_score_override_lookup
+* TF_R_0002-Tuning_Framework_Time_Based_Suppression_Lookup_Cleanup - remove entries that have expired from time_based_suppression_lookup
 
 ### Dashboards
 * Add Entry - Dashboard allows analysts to add entries to the tuning lookups. The Dashboard performs error checking against the user input to ensure that all entries are formatted correctly. Certain format checks will present an error that analysts cannot override while others just warn the analysts and allow them to override. Further details about dashboard are provided on the Dashboards README.
