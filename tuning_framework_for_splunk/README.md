@@ -26,8 +26,10 @@ tuning_framework_for_splunk
 `` |--- savedsearches.conf
 `` |--- transforms.conf
 |--- lookups
-`` |--- rba_risk_score_override.csv
-`` |--- time_based_suppression.csv
+`` |--- rba_risk_score_override_lookup.csv
+`` |--- time_based_suppression_lookup.csv
+|--- metadata
+`` |--- default.meta
 |--- README.md
 ```
 ## App Confs 
@@ -40,7 +42,7 @@ args = rule_name
 description = Generates search string for exclusions based on time_based_suppression_lookup.csv
 
 [tf_rba_risk_score_override(1)]
-definition = | eval rule_override=[| inputlookup rba_risk_score_override | eval id=sha1(created_time."|".operator."|".field."|".value) | eval field=if(operator="or",split(field,"|"),field) | mvexpand field | eval field=split(field,"|"), value=split(value,"|"), rules=split(rules,"|") | search rules=$rule_name$ | eval first_subnet=mvfind(value,"^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/(3[0-2]|[0-2]?[0-9])$") | eval second_subnet=mvfind(mvindex(value,first_subnet+1,-1),"^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/(3[0-2]|[0-2]?[0-9])$")+first_subnet+1 | eval cidr_indexes=mvappend(first_subnet,second_subnet) | eval cidr_fields=mvmap(cidr_indexes,mvindex(field,cidr_indexes)) | eval tmp_field=field, tmp_value=value | eval combined=if(operator="or",mvmap(value,if(match(value,"^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/(3[0-2]|[0-2]?[0-9])$"),"cidrmatch(\"".value."\",".field.")","like(lower(".field."),\"".value."\")")),mvzip(mvmap(field,if(field in(cidr_fields),"cidrmatch(\"".mvindex(value,tonumber(mvfind(tmp_field,field)))."\"","like(lower(".field.")")),mvmap(value,if(match(value,"^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/(3[0-2]|[0-2]?[0-9])$"),",".mvindex(field,tonumber(mvfind(tmp_value,value))).")",",\"".value."\")")),"")), partial_statement=if(operator="or",mvjoin(combined," OR "), mvjoin(combined," AND ")) | eval partial_statement=partial_statement.",\"".coalesce(risk_score,"10")."|".id."\"" | stats values(partial_statement) as partial_statement | eval case="case(".mvjoin(partial_statement, ",").",true(),risk_score)"| appendpipe [|stats count | where count=0 | eval case="risk_score"] | return $case] | rex field=rule_override "(?<risk_score>\d+)\|(?<tuning_entry_id>.*)" | fields - rule_override
+definition = | eval rule_override=[| inputlookup rba_risk_score_override_lookup | eval id=sha1(created_time."|".operator."|".field."|".value) | eval field=if(operator="or",split(field,"|"),field) | mvexpand field | eval field=split(field,"|"), value=split(value,"|"), rules=split(rules,"|") | search rules=$rule_name$ | eval first_subnet=mvfind(value,"^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/(3[0-2]|[0-2]?[0-9])$") | eval second_subnet=mvfind(mvindex(value,first_subnet+1,-1),"^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/(3[0-2]|[0-2]?[0-9])$")+first_subnet+1 | eval cidr_indexes=mvappend(first_subnet,second_subnet) | eval cidr_fields=mvmap(cidr_indexes,mvindex(field,cidr_indexes)) | eval tmp_field=field, tmp_value=value | eval combined=if(operator="or",mvmap(value,if(match(value,"^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/(3[0-2]|[0-2]?[0-9])$"),"cidrmatch(\"".value."\",".field.")","like(lower(".field."),\"".value."\")")),mvzip(mvmap(field,if(field in(cidr_fields),"cidrmatch(\"".mvindex(value,tonumber(mvfind(tmp_field,field)))."\"","like(lower(".field.")")),mvmap(value,if(match(value,"^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/(3[0-2]|[0-2]?[0-9])$"),",".mvindex(field,tonumber(mvfind(tmp_value,value))).")",",\"".value."\")")),"")), partial_statement=if(operator="or",mvjoin(combined," OR "), mvjoin(combined," AND ")) | eval partial_statement=partial_statement.",\"".coalesce(risk_score,"10")."|".id."\"" | stats values(partial_statement) as partial_statement | eval case="case(".mvjoin(partial_statement, ",").",true(),risk_score)"| appendpipe [|stats count | where count=0 | eval case="risk_score"] | return $case] | rex field=rule_override "(?<risk_score>\d+)\|(?<tuning_entry_id>.*)" | fields - rule_override
 args = rule_name
 
 
@@ -49,19 +51,20 @@ args = rule_name
 ### savedsearches.conf 
 #### Default 
 ```
-[time_based_suppression_list_clean_up]
-search = | inputlookup time_based_suppression.csv | eval remove=if(relative_time(strptime(created_time,"%s"),"+".suppression_period)<now(),1,0) | eval remove=if(relative_time(strptime(created_time,"%s"),"+180d")<now(),1,remove) | search remove=0 | outputlookup time_based_suppression.csv
+[TF_R_0001-Tuning_Framework_Risk_Score_Override_Lookup_Cleanup]
+search = | inputlookup rba_risk_score_override_lookup | eval remove=if(relative_time(strptime(created_time,"%s"),"+".suppression_period)<now(),1,0)| search remove=0 | fields - remove | outputlookup rba_risk_score_override_lookup
 dispatch.earliest_time = -5m
 dispatch.latest_time = now
-cron_schedule = 0 1 * * *
+cron_schedule = 7-59/15 * * * *
 disabled = 0
 
-[rba_confidence_override_list_clean_up]
-search = | inputlookup rba_confidence_override.csv | eval remove=if(relative_time(strptime(created_time,"%s"),"+".suppression_period)<now(),1,0) | eval remove=if(relative_time(strptime(created_time,"%s"),"+180d")<now(),1,remove) | search remove=0 | outputlookup rba_confidence_override.csv
+[TF_R_0002-Tuning_Framework_Time_Based_Suppression_Lookup_Cleanup]
+search = | inputlookup time_based_suppression_lookup | eval remove=if(relative_time(strptime(created_time,"%s"),"+".suppression_period)<now(),1,0)| search remove=0 | fields - remove | outputlookup time_based_suppression_lookup
 dispatch.earliest_time = -5m
 dispatch.latest_time = now
-cron_schedule = 5 1 * * *
+cron_schedule = 4-59/15 * * * *
 disabled = 0
+
 ```
 ### transforms.conf 
 #### Default 
@@ -69,6 +72,6 @@ disabled = 0
 [time_based_suppression_lookup]
 filename = time_based_suppression_lookup.csv
 
-[rba_risk_score_override]
-filename = rba_risk_score_override.csv
+[rba_risk_score_override_lookup]
+filename = rba_risk_score_override_lookup.csv
 ```
