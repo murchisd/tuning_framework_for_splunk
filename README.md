@@ -78,21 +78,21 @@ The following screen shots show an example of adding an entry which will suppres
 
   ![tuning mode and correlation search name input screenshot](https://github.com/murchisd/tuning_framework_for_splunk/blob/main/static/tuning_mode_and_cs_name_input.png)
 
-1. Specify Pipe Delimited Fields and Values for Suppression `src|src_ip` and `10.0.0.1|192.168.0.1/16`
+2. Specify Pipe Delimited Fields and Values for Suppression `src|src_ip` and `10.0.0.1|192.168.0.1/16`
 
   ![field and value input screenshot](https://github.com/murchisd/tuning_framework_for_splunk/blob/main/static/field_and_value_input.png)
 
-1. Select Lifetime and Logic Operator and specify Notes (Risk Score input is not used for Suppression Tuning Mode)
+3. Select Lifetime and Logic Operator and specify Notes (Risk Score input is not used for Suppression Tuning Mode)
 
   ![lifetime_operator_notes_input screenshot](https://github.com/murchisd/tuning_framework_for_splunk/blob/main/static/lifetime_operator_notes_input.png)
 
-1. Suppress Warnings if necessary 
+4. Suppress Warnings if necessary 
 
   Certain checks have been put in place to ensure proper format of entries and that analysts are aware of the resulting behavior. This example generates the warning `Warning: "value" input contains a pipe for Logic Operator "OR" - Multiple values will be suppressed using pipe delimiter - Verify this is desired behavior - select ignore warnings to suppress this message`. Warnings can be bypassed by setting `Ignore Warnings` to `Yes`.
 
   ![warning screenshot](https://github.com/murchisd/tuning_framework_for_splunk/blob/main/static/warning.png)
 
-1. Select `Run Query`
+5. Select `Run Query`
 
   After ignoring any warnings, you need to perform one final action before the entry will be added. Splunk has implemented safegaurds against "risky" SPL commands ([documentation](https://docs.splunk.com/Documentation/Splunk/latest/Security/SPLsafeguards#SPL_safeguards_for_risky_commands)). This means the `OUTPUTLOOKUP` will not run without user interaction. You must select the `red square` at the bottom right of the `Tuning Output Lookup Action` panel and select `Run Query`.
 
@@ -100,7 +100,7 @@ The following screen shots show an example of adding an entry which will suppres
 
   ![run_query screenshot](https://github.com/murchisd/tuning_framework_for_splunk/blob/main/static/run_query.png)
 
-1. Success!
+6. Success!
   The entry should have been successfully added to the Tuning Framework
 
   ![successfully_added_entry screenshot](https://github.com/murchisd/tuning_framework_for_splunk/blob/main/static/successfully_added_entry.png)
