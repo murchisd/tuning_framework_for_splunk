@@ -48,7 +48,7 @@ I would add both macros to the end of the SPL as seen below. The below example w
 | search count > 10
 `tf_rba_risk_score_override("Authentication - RR - Excessive Failed Logins")`
 `tf_time_based_suppression("Authentication - RR - Excessive Failed Logins")`
-```
+````
 
 One instance where you would not add to the end of the SPL is when using `collect` or `sendalert` to write you own risk events. You would want to place the macros before either of these commands.
 
