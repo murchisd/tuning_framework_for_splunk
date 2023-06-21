@@ -38,7 +38,7 @@ For example, assume there is a correlation search `Authentication - RR - Excessi
 | tstats count from datamodel=Authentication where Authentication.action="failure" by Authentication.user 
 | rename Authentication.* as *
 | search count > 10
-```
+````
 
 I would add both macros to the end of the SPL as seen below. The below example will run a `| eval risk_score=...` followed by a `| search NOT ...` after the `|search count > 10`.
 
