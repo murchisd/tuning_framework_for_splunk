@@ -31,6 +31,11 @@ tuning_framework_for_splunk
 |--- metadata
 `` |--- default.meta
 |--- README.md
+|--- static
+`` |--- appIcon.png
+`` |--- appIconAlt.png
+`` |--- appIconAlt_2x.png
+`` |--- appIcon_2x.png
 ```
 ## App Confs 
 ### macros.conf 

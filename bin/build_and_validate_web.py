@@ -143,6 +143,7 @@ def main(args):
     acs_api_host='admin.splunk.com'
     appinspect_api_host="appinspect.splunk.com"
     
+    #This needs to be splunk.com username not email
     user=input("User: ")
     pwd=getpass.getpass("Password: ")
     
@@ -187,7 +188,7 @@ def main(args):
     print("Validating app...")
     url="https://{0}/v1/app/validate".format(appinspect_api_host)
     appinspect_token=r.json()['data']['token']
-    r = requests.post(url,proxies=proxies,headers={'Authorization': 'Bearer {}'.format(appinspect_token)},data={'included_tags':'private_app'},files={'app_package': tgz_file.open('rb')})
+    r = requests.post(url,proxies=proxies,headers={'Authorization': 'Bearer {}'.format(appinspect_token)},data={'included_tags':'cloud'},files={'app_package': tgz_file.open('rb')})
     
     status_link='https://{0}'.format(appinspect_api_host)
     report_link='https://{0}'.format(appinspect_api_host)
