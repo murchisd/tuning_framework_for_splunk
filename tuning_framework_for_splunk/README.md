@@ -8,7 +8,7 @@ id: tuning_framework_for_splunk
 is_visible: 1  
 label: Tuning Framework for Splunk  
 name: tuning_framework_for_splunk  
-version: 1.0.1  
+version: 1.0.2  
 
 ## App Structure 
 ```
