@@ -8,26 +8,26 @@ id: tuning_framework_for_splunk
 is_visible: 1  
 label: Tuning Framework for Splunk  
 name: tuning_framework_for_splunk  
-version: 1.0.0  
+version: 1.0.1  
 
 ## App Structure 
 ```
 tuning_framework_for_splunk
 |--- default
+`` |--- macros.conf
+`` |--- transforms.conf
 `` |--- app.conf
 `` |--- data
 `` `` |--- ui
+`` `` `` |--- views
+`` `` `` `` |--- tuning_framework_list_entry.xml
+`` `` `` `` |--- tuning_framework_add_entry.xml
 `` `` `` |--- nav
 `` `` `` `` |--- default.xml
-`` `` `` |--- views
-`` `` `` `` |--- tuning_framework_add_entry.xml
-`` `` `` `` |--- tuning_framework_list_entry.xml
-`` |--- macros.conf
 `` |--- savedsearches.conf
-`` |--- transforms.conf
 |--- lookups
-`` |--- rba_risk_score_override_lookup.csv
 `` |--- time_based_suppression_lookup.csv
+`` |--- rba_risk_score_override_lookup.csv
 |--- metadata
 `` |--- default.meta
 |--- README.md
@@ -48,6 +48,15 @@ args = rule_name
 
 
 ```
+### transforms.conf 
+#### Default 
+```
+[time_based_suppression_lookup]
+filename = time_based_suppression_lookup.csv
+
+[rba_risk_score_override_lookup]
+filename = rba_risk_score_override_lookup.csv
+```
 ### savedsearches.conf 
 #### Default 
 ```
@@ -65,13 +74,4 @@ dispatch.latest_time = now
 cron_schedule = 4-59/15 * * * *
 disabled = 0
 
-```
-### transforms.conf 
-#### Default 
-```
-[time_based_suppression_lookup]
-filename = time_based_suppression_lookup.csv
-
-[rba_risk_score_override_lookup]
-filename = rba_risk_score_override_lookup.csv
 ```
